@@ -665,13 +665,13 @@ function startSlides() {
     }
   }
 
-  // Force reload each image to guarantee onload fires
+  // Load images via JS to guarantee onload fires
   slides.forEach(s => {
-    const originalSrc = s.src;
+    const src = s.getAttribute('src');
+    s.removeAttribute('src');
     s.onload = onImgLoad;
     s.onerror = onImgLoad;
-    // Add cache buster to force fresh load and trigger onload
-    s.src = originalSrc + '?v=' + Date.now();
+    setTimeout(() => { s.src = src; }, 10);
   });
 }
 
