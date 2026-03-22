@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nora & Iñigo · 26 Septiembre 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --gold: #ffd040;
+    --green: #4aff72;
+    --red: #ff4444;
+    --blue: #4488ff;
+    --bg: #080c14;
+    --bg2: #0d1525;
+    --border: #1e2d45;
+    --text: #c8d8e8;
+    --dim: #4a5a6a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    overflow-x: hidden;
+  }
+
+  /* ===================== INTRO ===================== */
+  #intro {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  #intro-canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    inset: 0;
+    image-rendering: pixelated;
+  }
+
+  #skip-btn {
+    position: absolute;
+    bottom: 32px;
+    right: 32px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 10px 16px;
+    cursor: pointer;
+    z-index: 10;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  #skip-btn:hover { color: var(--gold); border-color: var(--gold); }
+
+  /* ===================== MAIN ===================== */
+  #main {
+    display: none;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .page {
+    display: none;
+    max-width: 640px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease;
+  }
+  .page.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* progress dots */
+  .progress-dots {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .dot {
+    width: 12px; height: 12px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .dot.active { background: var(--green); }
+  .dot.done { background: var(--gold); }
+
+  /* title */
+  .page-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(18px, 4vw, 28px);
+    color: var(--gold);
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+  .page-subtitle {
+    text-align: center;
+    color: var(--dim);
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+  }
+
+  /* card */
+  .card {
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .card-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+    padding-left: 12px;
+    border-left: 3px solid var(--gold);
+  }
+
+  /* welcome buttons */
+  .attend-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .btn-yes, .btn-no {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    padding: 20px;
+    cursor: pointer;
+    border: 2px solid;
+    background: transparent;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .btn-yes { color: var(--green); border-color: var(--green); }
+  .btn-yes:hover { background: rgba(74,255,114,0.1); }
+  .btn-no { color: var(--red); border-color: var(--red); }
+  .btn-no:hover { background: rgba(255,68,68,0.1); }
+
+  /* allergies grid */
+  .allergy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .allergy-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .allergy-item:hover { border-color: var(--gold); }
+  .allergy-item.selected {
+    border-color: var(--gold);
+    background: rgba(255,208,64,0.08);
+  }
+  .allergy-item input[type="checkbox"] {
+    appearance: none;
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .allergy-item.selected input[type="checkbox"] {
+    border-color: var(--gold);
+    background: var(--gold);
+  }
+  .allergy-item.selected input[type="checkbox"]::after {
+    content: '✓';
+    position: absolute;
+    top: -3px; left: 1px;
+    font-size: 12px;
+    color: #000;
+    font-weight: bold;
+  }
+  .allergy-item span { font-size: 13px; letter-spacing: 1px; }
+
+  #otra-text {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    padding: 12px 14px;
+    outline: none;
+    display: none;
+    margin-top: 4px;
+  }
+  #otra-text:focus { border-color: var(--gold); }
+  #otra-text::placeholder { color: var(--dim); }
+
+  /* ticket counters */
+  .ticket-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ticket-row:last-of-type { border-bottom: none; }
+  .ticket-label { font-size: 14px; }
+  .ticket-sub { font-size: 11px; color: var(--dim); margin-top: 4px; }
+  .ticket-counter {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .counter-btn {
+    width: 36px; height: 36px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gold);
+    font-size: 18px;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .counter-btn:hover { border-color: var(--gold); background: rgba(255,208,64,0.1); }
+  .counter-val {
+    width: 40px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 14px;
+    color: var(--gold);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .alert-box {
+    border-left: 3px solid var(--red);
+    background: rgba(255,68,68,0.06);
+    padding: 16px;
+    margin-top: 20px;
+  }
+  .alert-title {
+    color: var(--red);
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+  .alert-body { font-size: 12px; line-height: 1.8; color: var(--text); }
+  .alert-body strong { color: var(--gold); }
+  .alert-body .red { color: var(--red); font-weight: bold; }
+  .alert-note { font-size: 12px; line-height: 1.8; color: var(--dim); margin-top: 16px; }
+
+  /* summary */
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-label { color: var(--dim); }
+  .summary-val { color: var(--gold); }
+
+  /* program */
+  .program-grid {
+    display: grid;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .program-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .program-time {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    color: var(--gold);
+    white-space: nowrap;
+    padding-top: 2px;
+    min-width: 60px;
+  }
+  .program-desc { font-size: 13px; color: var(--text); line-height: 1.5; }
+
+  /* buttons */
+  .btn-next {
+    width: 100%;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 20px;
+    background: transparent;
+    border: 2px solid var(--gold);
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 16px;
+  }
+  .btn-next:hover { background: rgba(255,208,64,0.1); }
+
+  .btn-back {
+    display: block;
+    text-align: center;
+    color: var(--dim);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+    background: none; border: none;
+    width: 100%;
+    padding: 8px;
+  }
+  .btn-back:hover { color: var(--text); }
+
+  /* final screens */
+  .final-screen {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .final-icon { font-size: 56px; margin-bottom: 24px; display: block; }
+  .final-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(14px, 3vw, 20px);
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .final-text { font-size: 14px; line-height: 2; color: var(--text); margin-bottom: 12px; }
+  .final-location { font-size: 13px; color: var(--dim); margin-top: 24px; letter-spacing: 1px; }
+
+  /* welcome page intro text */
+  .welcome-text {
+    text-align: center;
+    font-size: 14px;
+    line-height: 2;
+    color: var(--text);
+    margin-bottom: 32px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== INTRO ==================== -->
+<div id="intro">
+  <canvas id="intro-canvas"></canvas>
+  <button id="skip-btn" onclick="skipIntro()">SALTAR ▶</button>
+</div>
+
+<!-- ==================== MAIN ==================== -->
+<div id="main">
+
+  <!-- PASO 0: Bienvenida -->
+  <div class="page active" id="page-0">
+    <div class="page-title">Nora & Iñigo</div>
+    <div class="page-subtitle">26 · Septiembre · 2026 · Igeretxe · Getxo</div>
+    <div class="card">
+      <p class="welcome-text">Os invitamos a celebrar con nosotros<br>el día de nuestra boda.</p>
+      <div class="card-title">¿CONTAMOS CONTIGO?</div>
+      <div class="attend-btns">
+        <button class="btn-yes" onclick="goYes()">✓ SÍ ASISTIRÉ</button>
+        <button class="btn-no" onclick="goNo()">✗ NO PODRÉ IR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PASO 1: Nombre -->
+  <div class="page" id="page-1">
+    <div class="progress-dots">
+      <div class="dot active" id="dot-1"></div>
+      <div class="dot" id="dot-2"></div>
+      <div class="dot" id="dot-3"></div>
+    </div>
+    <div class="page-title">Nora & Iñigo</div>
+    <div class="page-subtitle" style="margin-bottom:32px;">CONFIRMACIÓN DE ASISTENCIA</div>
+    <div class="card">
+      <div class="card-title">TU NOMBRE</div>
+      <input type="text" id="nombre-input" placeholder="Escribe tu nombre completo..."
+        style="width:100%;background:transparent;border:1px solid var(--border);color:var(--text);
+        font-family:'Share Tech Mono',monospace;font-size:14px;padding:14px;outline:none;"
+        onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <button class="btn-next" onclick="goStep2()">SIGUIENTE →</button>
+    <button class="btn-back" onclick="goPage(0)">← volver</button>
+  </div>
+
+  <!-- PASO 2: Alergias -->
+  <div class="page" id="page-2">
+    <div class="progress-dots">
+      <div class="dot done" id="dot-1b"></div>
+      <div class="dot active" id="dot-2b"></div>
+      <div class="dot" id="dot-3b"></div>
+    </div>
+    <div class="page-title">Nora & Iñigo</div>
+    <div class="page-subtitle" style="margin-bottom:32px;"></div>
+    <div class="card">
+      <div class="card-title">ALERGIAS E INTOLERANCIAS</div>
+      <div class="allergy-grid">
+        <label class="allergy-item" onclick="toggleAllergy(this,'Ninguna')">
+          <input type="checkbox"><span>Ninguna</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Gluten')">
+          <input type="checkbox"><span>Gluten</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Lactosa')">
+          <input type="checkbox"><span>Lactosa</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Frutos secos')">
+          <input type="checkbox"><span>Frutos secos</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Marisco')">
+          <input type="checkbox"><span>Marisco</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Vegetariano')">
+          <input type="checkbox"><span>Vegetariano</span>
+        </label>
+        <label class="allergy-item" onclick="toggleAllergy(this,'Vegano')">
+          <input type="checkbox"><span>Vegano</span>
+        </label>
+        <label class="allergy-item" id="otra-label" onclick="toggleAllergy(this,'Otra')">
+          <input type="checkbox"><span>Otra</span>
+        </label>
+      </div>
+      <input type="text" id="otra-text" placeholder="Especifica tu alergia...">
+    </div>
+    <button class="btn-next" onclick="goStep3()">SIGUIENTE →</button>
+    <button class="btn-back" onclick="goPage(1)">← volver</button>
+  </div>
+
+  <!-- PASO 3: Tickets -->
+  <div class="page" id="page-3">
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot active"></div>
+    </div>
+    <div class="page-title">Nora & Iñigo</div>
+    <div class="page-subtitle" style="margin-bottom:32px;"></div>
+    <div class="card">
+      <div class="card-title">TICKETS DE BEBIDA</div>
+      <div class="ticket-row">
+        <div>
+          <div class="ticket-label">🍷 Vino / Cerveza</div>
+          <div class="ticket-sub">máximo 4 tickets</div>
+        </div>
+        <div class="ticket-counter">
+          <button class="counter-btn" onclick="changeTicket('vino',-1)">−</button>
+          <div class="counter-val" id="vino-val">0</div>
+          <button class="counter-btn" onclick="changeTicket('vino',1)">+</button>
+        </div>
+      </div>
+      <div class="ticket-row">
+        <div>
+          <div class="ticket-label">🍹 Combinado</div>
+          <div class="ticket-sub">máximo 3 tickets</div>
+        </div>
+        <div class="ticket-counter">
+          <button class="counter-btn" onclick="changeTicket('combinado',-1)">−</button>
+          <div class="counter-val" id="combinado-val">0</div>
+          <button class="counter-btn" onclick="changeTicket('combinado',1)">+</button>
+        </div>
+      </div>
+      <div class="alert-box">
+        <div class="alert-title">⚠ NOTA IMPORTANTE</div>
+        <div class="alert-body">
+          Todos los tickets están <strong>ya pagados por los novios</strong>.<br>
+          Por favor, <span class="red">no os llevéis tickets a casa</span> — están pensados para consumir en el evento. ¡Lo tenemos todo cubierto para que disfrutéis sin preocuparos!
+        </div>
+      </div>
+      <p class="alert-note">Y si al final os quedáis cortos de consumiciones, no os cortéis — avisadnos directamente a los novios y cogemos más sin problema. ¡Para eso estamos!</p>
+    </div>
+    <button class="btn-next" onclick="goStep4()">SIGUIENTE →</button>
+    <button class="btn-back" onclick="goPage(2)">← volver</button>
+  </div>
+
+  <!-- PASO 4: Resumen -->
+  <div class="page" id="page-4">
+    <div class="progress-dots">
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+      <div class="dot done"></div>
+    </div>
+    <div class="page-title">Nora & Iñigo</div>
+    <div class="page-subtitle" style="margin-bottom:32px;"></div>
+    <div class="card">
+      <div class="card-title">RESUMEN</div>
+      <div class="summary-row">
+        <span class="summary-label">Nombre</span>
+        <span class="summary-val" id="sum-nombre">—</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Asistencia</span>
+        <span class="summary-val" style="color:var(--green)">Sí asistiré ✓</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Alergias</span>
+        <span class="summary-val" id="sum-alergias">Ninguna</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Vino / Cerveza</span>
+        <span class="summary-val" id="sum-vino">0 tickets</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">Combinado</span>
+        <span class="summary-val" id="sum-combinado">0 tickets</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">PROGRAMA DEL DÍA</div>
+      <div class="program-grid">
+        <div class="program-item">
+          <span class="program-time">18:30</span>
+          <span class="program-desc">Recepción de los novios</span>
+        </div>
+        <div class="program-item">
+          <span class="program-time">19:00</span>
+          <span class="program-desc">Cocktail</span>
+        </div>
+        <div class="program-item">
+          <span class="program-time">21:00</span>
+          <span class="program-desc">Concierto de LaBBC</span>
+        </div>
+        <div class="program-item">
+          <span class="program-time">22:00</span>
+          <span class="program-desc">Fiesta hasta las 01:00</span>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">CÓDIGO DE VESTIMENTA</div>
+      <div class="program-grid">
+        <div class="program-item">
+          <span class="program-time" style="min-width:28px;">👔</span>
+          <span class="program-desc"><strong style="color:var(--gold)">Chicos:</strong> al menos americana — el resto es vuestra elección.</span>
+        </div>
+        <div class="program-item">
+          <span class="program-time" style="min-width:28px;">👗</span>
+          <span class="program-desc"><strong style="color:var(--gold)">Chicas:</strong> elegid lo que os haga sentir guapas y cómodas.</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn-next" id="confirm-btn" onclick="confirmar()">CONFIRMAR ✓</button>
+    <button class="btn-back" onclick="goPage(3)">← volver</button>
+  </div>
+
+  <!-- PANTALLA: Confirmado -->
+  <div class="page" id="page-ok">
+    <div class="final-screen">
+      <span class="final-icon">🎉</span>
+      <div class="final-title" style="color:var(--green)">¡NOS VEMOS EL 26 DE SEP!</div>
+      <p class="final-text">Tu confirmación ha sido enviada.<br>Nora e Iñigo están deseando celebrarlo contigo.</p>
+      <p class="final-location">📍 Igeretxe (Salero) · Playa de Ereaga · Getxo</p>
+    </div>
+  </div>
+
+  <!-- PANTALLA: Token ya usado -->
+  <div class="page" id="page-usado">
+    <div class="final-screen">
+      <span class="final-icon">&#x2705;</span>
+      <div class="final-title" style="color:var(--gold)">YA CONFIRMASTE</div>
+      <p class="final-text">Ya recibimos tu respuesta anteriormente.<br>  <!-- PANTALLA: No asiste -->#x21;No hace falta que vuelvas a confirmar!</p>
+      <p class="final-location">  <!-- PANTALLA: No asiste -->#x1F4CD; Igeretxe (Salero) · Playa de Ereaga · Getxo</p>
+    </div>
+  </div>
+
+  <!-- PANTALLA: No asiste -->
+  <div class="page" id="page-no">
+    <div class="final-screen">
+      <span class="final-icon">😢</span>
+      <div class="final-title" style="color:var(--red)">¡QUÉ PENA!</div>
+      <p class="final-text">Nos hubiera encantado celebrarlo contigo.</p>
+      <p class="final-text">Nora e Iñigo te mandan un abrazo enorme y<br>esperan que coincidáis pronto.</p>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ==================== STATE ====================
+const state = {
+  nombre: '',
+  alergias: [],
+  otraAlergia: '',
+  vino: 0,
+  combinado: 0
+};
+
+// ==================== INTRO ====================
+const GITHUB = 'https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/';
+const IMGS = {
+  tierra:   GITHUB + 'tierra_pixel-art.png',
+  planos:   GITHUB + 'tierra_planos_pixel-art.png',
+  dia:      GITHUB + 'igeretxe_novios_pixel-art_2.png',
+  noche:    GITHUB + 'igeretxe_novios_noche_pixel-art_2.png',
+  mensaje:  GITHUB + 'igeretxe_novios_mensaje_pixel-art_v2.png'
+};
+
+// Preload all images
+const loaded = {};
+let loadedCount = 0;
+const totalImgs = Object.keys(IMGS).length;
+
+function preloadImages(cb) {
+  Object.entries(IMGS).forEach(([key, src]) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      loaded[key] = img;
+      loadedCount++;
+      if (loadedCount === totalImgs) cb();
+    };
+    img.onerror = () => {
+      loadedCount++;
+      if (loadedCount === totalImgs) cb();
+    };
+    img.src = src;
+  });
+}
+
+// tierra_planos: 5 panels in a 5-panel grid (varies by image)
+// We'll detect actual image dimensions and crop each panel
+// The image tierra_planos_pixel-art.png has a 2x3 grid (but bottom row has 3 panels)
+// From the screenshot: top-left(earth), top-right(europe), bottom-left(spain), bottom-center(basque coast), bottom-right(getxo)
+// Crop definitions as fractions [x, y, w, h]
+const PLANOS_CROPS = [
+  [0,     0,    0.5,  0.5],  // tierra (top-left)
+  [0.5,   0,    0.5,  0.5],  // europe (top-right)
+  [0,     0.5,  0.333, 0.5], // spain (bottom-left)
+  [0.333, 0.5,  0.333, 0.5], // basque (bottom-center)
+  [0.667, 0.5,  0.333, 0.5], // getxo (bottom-right)
+];
+
+const canvas = document.getElementById('intro-canvas');
+const ctx = canvas.getContext('2d');
+
+// Phases: each has duration in ms
+// Phase 0: tierra (fade in, hold, zoom in slightly)
+// Phase 1-5: each planos panel (zoom in progressively)
+// Phase 6: igeretxe dia
+// Phase 7: igeretxe noche
+// Phase 8: mensaje (hold)
+
+const PHASES = [
+  { key: 'tierra',  dur: 2800 },
+  { key: 'planos',  panel: 0, dur: 800 },
+  { key: 'planos',  panel: 1, dur: 900 },
+  { key: 'planos',  panel: 2, dur: 900 },
+  { key: 'planos',  panel: 3, dur: 900 },
+  { key: 'planos',  panel: 4, dur: 1000 },
+  { key: 'dia',     dur: 2200 },
+  { key: 'noche',   dur: 2200 },
+  { key: 'mensaje', dur: 3000 },
+];
+
+let currentPhase = 0;
+let phaseStart = 0;
+let animRunning = true;
+let lastRaf;
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function drawImageCover(img, alpha, zoom) {
+  if (!img) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const cw = canvas.width, ch = canvas.height;
+  const scale = Math.max(cw / img.width, ch / img.height) * zoom;
+  const dw = img.width * scale, dh = img.height * scale;
+  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+function drawPlanoCrop(img, crop, alpha, zoom) {
+  if (!img) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  const [fx, fy, fw, fh] = crop;
+  const sw = img.width * fw, sh = img.height * fh;
+  const sx = img.width * fx, sy = img.height * fy;
+  const cw = canvas.width, ch = canvas.height;
+  const scale = Math.max(cw / sw, ch / sh) * zoom;
+  const dw = sw * scale, dh = sh * scale;
+  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+}
+
+function renderFrame(ts) {
+  if (!animRunning) return;
+  if (!phaseStart) phaseStart = ts;
+
+  const elapsed = ts - phaseStart;
+  const phase = PHASES[currentPhase];
+  const t = Math.min(elapsed / phase.dur, 1);
+  const et = easeInOut(t);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // fade in / out alpha
+  let alpha = 1;
+  if (t < 0.15) alpha = t / 0.15;
+  if (t > 0.85) alpha = (1 - t) / 0.15;
+
+  // zoom
+  const zoom = 1 + et * 0.08;
+
+  if (phase.key === 'tierra') {
+    drawImageCover(loaded.tierra, alpha, zoom);
+  } else if (phase.key === 'planos') {
+    drawPlanoCrop(loaded.planos, PLANOS_CROPS[phase.panel], alpha, zoom);
+  } else if (phase.key === 'dia') {
+    drawImageCover(loaded.dia, alpha, zoom);
+  } else if (phase.key === 'noche') {
+    drawImageCover(loaded.noche, alpha, zoom);
+  } else if (phase.key === 'mensaje') {
+    // last phase: fade in, hold, don't fade out
+    if (t < 0.15) alpha = t / 0.15; else alpha = 1;
+    drawImageCover(loaded.mensaje, alpha, 1);
+  }
+
+  if (t >= 1) {
+    currentPhase++;
+    phaseStart = 0;
+    if (currentPhase >= PHASES.length) {
+      // intro done
+      setTimeout(endIntro, 800);
+      return;
+    }
+  }
+
+  lastRaf = requestAnimationFrame(renderFrame);
+}
+
+function skipIntro() {
+  animRunning = false;
+  cancelAnimationFrame(lastRaf);
+  endIntro();
+}
+
+function endIntro() {
+  animRunning = false;
+  const intro = document.getElementById('intro');
+  intro.style.transition = 'opacity 0.6s';
+  intro.style.opacity = '0';
+  setTimeout(() => {
+    intro.style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+  }, 600);
+}
+
+// Start
+preloadImages(() => {
+  lastRaf = requestAnimationFrame(renderFrame);
+});
+
+// ==================== TOKEN ====================
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXA8LXpqDLHTfNL16SXCg9Nv7r8ANSWAPhVtHSpQHBCwYqHKp9pEDPUrAxnauZTzRC/exec';
+
+function getToken() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') || null;
+}
+
+async function checkToken() {
+  const token = getToken();
+  if (!token) return; // sin token: dejamos pasar (para pruebas)
+  state.token = token;
+  try {
+    const res = await fetch(SCRIPT_URL + '?token=' + encodeURIComponent(token));
+    const data = await res.json();
+    if (data.used) {
+      // Ya respondió — mostrar pantalla especial
+      document.getElementById('main').style.display = 'block';
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-usado').classList.add('active');
+    }
+  } catch(e) {
+    // Si falla la comprobación, dejamos pasar igualmente
+    console.warn('No se pudo verificar token:', e);
+  }
+}
+
+// ==================== FORM ====================
+function goPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + n).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function goYes() { goPage(1); }
+
+function goNo() {
+  sendToScript({ nombre: 'Anónimo', asistencia: 'No', alergias: '', vino: 0, combinado: 0 });
+  goPage('no');
+}
+
+function goStep2() {
+  const n = document.getElementById('nombre-input').value.trim();
+  if (!n) { showFormError('nombre-error', 'Por favor escribe tu nombre.'); return; }
+  hideFormError('nombre-error');
+  state.nombre = n;
+  goPage(2);
+}
+
+function toggleAllergy(label, val) {
+  label.classList.toggle('selected');
+  const cb = label.querySelector('input');
+  cb.checked = !cb.checked;
+
+  if (val === 'Ninguna' && cb.checked) {
+    document.querySelectorAll('.allergy-item').forEach(l => {
+      if (l !== label) { l.classList.remove('selected'); l.querySelector('input').checked = false; }
+    });
+  } else if (val !== 'Ninguna') {
+    const ninguna = document.querySelector('.allergy-item:first-child');
+    if (ninguna) { ninguna.classList.remove('selected'); ninguna.querySelector('input').checked = false; }
+  }
+
+  const otraText = document.getElementById('otra-text');
+  const otraSelected = document.getElementById('otra-label').classList.contains('selected');
+  otraText.style.display = otraSelected ? 'block' : 'none';
+  hideFormError('alergy-error');
+}
+
+function goStep3() {
+  const selected = Array.from(document.querySelectorAll('.allergy-item.selected span')).map(s => s.textContent);
+  const otra = document.getElementById('otra-text').value.trim();
+
+  if (selected.length === 0) {
+    showFormError('alergy-error', 'Por favor selecciona al menos una opción (aunque sea "Ninguna").');
+    return;
+  }
+  if (selected.includes('Otra') && !otra) {
+    showFormError('alergy-error', 'Por favor especifica tu alergia en el campo de texto.');
+    return;
+  }
+  hideFormError('alergy-error');
+
+  state.alergias = selected.includes('Otra') && otra
+    ? selected.filter(s => s !== 'Otra').concat([otra])
+    : selected;
+  goPage(3);
+}
+
+function showFormError(id, msg) {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = id;
+    el.style.cssText = 'color:var(--red);font-size:12px;letter-spacing:1px;margin-top:12px;padding:10px 14px;border-left:3px solid var(--red);background:rgba(255,68,68,0.06);';
+    if (id === 'nombre-error') document.querySelector('#page-1 .card').appendChild(el);
+    else document.querySelector('#page-2 .card').appendChild(el);
+  }
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function hideFormError(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function changeTicket(type, delta) {
+  const max = type === 'vino' ? 4 : 3;
+  state[type] = Math.max(0, Math.min(max, state[type] + delta));
+  document.getElementById(type + '-val').textContent = state[type];
+}
+
+function goStep4() {
+  document.getElementById('sum-nombre').textContent = state.nombre;
+  document.getElementById('sum-alergias').textContent = state.alergias.join(', ') || 'Ninguna';
+  document.getElementById('sum-vino').textContent = state.vino + ' ticket' + (state.vino !== 1 ? 's' : '');
+  document.getElementById('sum-combinado').textContent = state.combinado + ' ticket' + (state.combinado !== 1 ? 's' : '');
+  goPage(4);
+}
+
+async function confirmar() {
+  const btn = document.getElementById('confirm-btn');
+  btn.textContent = 'ENVIANDO...';
+  btn.disabled = true;
+
+  const payload = {
+    nombre: state.nombre,
+    asistencia: 'Si',
+    alergias: state.alergias.join(', '),
+    vino: state.vino,
+    combinado: state.combinado,
+    token: state.token || ''
+  };
+
+  const ok = await sendToScript(payload);
+  if (ok) {
+    goPage('ok');
+  } else {
+    btn.textContent = 'CONFIRMAR ✓';
+    btn.disabled = false;
+    alert('Error al enviar. Inténtalo de nuevo.');
+  }
+}
+
+async function sendToScript(payload) {
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return true;
+  } catch(e) {
+    console.error(e);
+    return false;
+  }
+}
+
+// Verificar token al cargar
+window.addEventListener('load', checkToken);
+</script>
+</body>
+</html>
