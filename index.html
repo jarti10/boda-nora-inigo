@@ -40,13 +40,24 @@
     flex-direction: column;
   }
 
-  #intro-canvas {
+  #intro-slides {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .slide {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    position: absolute;
-    inset: 0;
-    image-rendering: pixelated;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    image-rendering: auto;
+  }
+  .slide.active {
+    opacity: 1;
   }
 
   #skip-btn {
@@ -366,7 +377,13 @@
 
 <!-- ==================== INTRO ==================== -->
 <div id="intro">
-  <canvas id="intro-canvas"></canvas>
+  <div id="intro-slides">
+    <img class="slide" id="s0" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_pixel-art.png">
+    <img class="slide" id="s1" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_planos_pixel-art.png">
+    <img class="slide" id="s2" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_pixel-art_2.png">
+    <img class="slide" id="s3" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_noche_pixel-art_2.png">
+    <img class="slide" id="s4" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_mensaje_pixel-art_v2.png">
+  </div>
   <button id="skip-btn" onclick="skipIntro()">SALTAR ▶</button>
 </div>
 
@@ -609,170 +626,26 @@ const state = {
 };
 
 // ==================== INTRO ====================
-const GITHUB = 'https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/';
-const IMGS = {
-  tierra:   GITHUB + 'tierra_pixel-art.png',
-  planos:   GITHUB + 'tierra_planos_pixel-art.png',
-  dia:      GITHUB + 'igeretxe_novios_pixel-art_2.png',
-  noche:    GITHUB + 'igeretxe_novios_noche_pixel-art_2.png',
-  mensaje:  GITHUB + 'igeretxe_novios_mensaje_pixel-art_v2.png'
-};
-
-// Preload all images
-const loaded = {};
-let loadedCount = 0;
-const totalImgs = Object.keys(IMGS).length;
-
-function preloadImages(cb) {
-  Object.entries(IMGS).forEach(([key, src]) => {
-    fetch(src)
-      .then(r => r.blob())
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const img = new Image();
-        img.onload = () => {
-          loaded[key] = img;
-          loadedCount++;
-          if (loadedCount === totalImgs) cb();
-        };
-        img.src = url;
-      })
-      .catch(() => {
-        loadedCount++;
-        if (loadedCount === totalImgs) cb();
-      });
-  });
-}
-
-// tierra_planos: 5 panels in a 5-panel grid (varies by image)
-// We'll detect actual image dimensions and crop each panel
-// The image tierra_planos_pixel-art.png has a 2x3 grid (but bottom row has 3 panels)
-// From the screenshot: top-left(earth), top-right(europe), bottom-left(spain), bottom-center(basque coast), bottom-right(getxo)
-// Crop definitions as fractions [x, y, w, h]
-const PLANOS_CROPS = [
-  [0,     0,    0.5,  0.5],  // tierra (top-left)
-  [0.5,   0,    0.5,  0.5],  // europe (top-right)
-  [0,     0.5,  0.333, 0.5], // spain (bottom-left)
-  [0.333, 0.5,  0.333, 0.5], // basque (bottom-center)
-  [0.667, 0.5,  0.333, 0.5], // getxo (bottom-right)
-];
-
-const canvas = document.getElementById('intro-canvas');
-const ctx = canvas.getContext('2d');
-
-// Phases: each has duration in ms
-// Phase 0: tierra (fade in, hold, zoom in slightly)
-// Phase 1-5: each planos panel (zoom in progressively)
-// Phase 6: igeretxe dia
-// Phase 7: igeretxe noche
-// Phase 8: mensaje (hold)
-
-const PHASES = [
-  { key: 'tierra',  dur: 2800 },
-  { key: 'planos',  panel: 0, dur: 800 },
-  { key: 'planos',  panel: 1, dur: 900 },
-  { key: 'planos',  panel: 2, dur: 900 },
-  { key: 'planos',  panel: 3, dur: 900 },
-  { key: 'planos',  panel: 4, dur: 1000 },
-  { key: 'dia',     dur: 2200 },
-  { key: 'noche',   dur: 2200 },
-  { key: 'mensaje', dur: 3000 },
-];
-
-let currentPhase = 0;
-let phaseStart = 0;
+// ==================== SLIDE ANIMATION ====================
+const SLIDE_DURATIONS = [2800, 900, 900, 2200, 2200, 3000];
 let animRunning = true;
-let lastRaf;
+let slideTimer = null;
 
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-function drawImageCover(img, alpha, zoom) {
-  if (!img) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  const cw = canvas.width, ch = canvas.height;
-  const scale = Math.max(cw / img.width, ch / img.height) * zoom;
-  const dw = img.width * scale, dh = img.height * scale;
-  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-  ctx.drawImage(img, dx, dy, dw, dh);
-  ctx.restore();
-}
-
-function drawPlanoCrop(img, crop, alpha, zoom) {
-  if (!img) return;
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  const [fx, fy, fw, fh] = crop;
-  const sw = img.width * fw, sh = img.height * fh;
-  const sx = img.width * fx, sy = img.height * fy;
-  const cw = canvas.width, ch = canvas.height;
-  const scale = Math.max(cw / sw, ch / sh) * zoom;
-  const dw = sw * scale, dh = sh * scale;
-  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-  ctx.restore();
-}
-
-function easeInOut(t) {
-  return t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
-}
-
-function renderFrame(ts) {
-  if (!animRunning) return;
-  if (!phaseStart) phaseStart = ts;
-
-  const elapsed = ts - phaseStart;
-  const phase = PHASES[currentPhase];
-  const t = Math.min(elapsed / phase.dur, 1);
-  const et = easeInOut(t);
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // fade in / out alpha
-  let alpha = 1;
-  if (t < 0.15) alpha = t / 0.15;
-  if (t > 0.85) alpha = (1 - t) / 0.15;
-
-  // zoom
-  const zoom = 1 + et * 0.08;
-
-  if (phase.key === 'tierra') {
-    drawImageCover(loaded.tierra, alpha, zoom);
-  } else if (phase.key === 'planos') {
-    drawPlanoCrop(loaded.planos, PLANOS_CROPS[phase.panel], alpha, zoom);
-  } else if (phase.key === 'dia') {
-    drawImageCover(loaded.dia, alpha, zoom);
-  } else if (phase.key === 'noche') {
-    drawImageCover(loaded.noche, alpha, zoom);
-  } else if (phase.key === 'mensaje') {
-    // last phase: fade in, hold, don't fade out
-    if (t < 0.15) alpha = t / 0.15; else alpha = 1;
-    drawImageCover(loaded.mensaje, alpha, 1);
+function startSlides() {
+  const slides = document.querySelectorAll('.slide');
+  function showSlide(i) {
+    if (!animRunning) return;
+    slides.forEach(s => s.classList.remove('active'));
+    if (i >= slides.length) { setTimeout(endIntro, 600); return; }
+    slides[i].classList.add('active');
+    slideTimer = setTimeout(() => showSlide(i + 1), SLIDE_DURATIONS[i] || 2000);
   }
-
-  if (t >= 1) {
-    currentPhase++;
-    phaseStart = 0;
-    if (currentPhase >= PHASES.length) {
-      // intro done
-      setTimeout(endIntro, 800);
-      return;
-    }
-  }
-
-  lastRaf = requestAnimationFrame(renderFrame);
+  showSlide(0);
 }
 
 function skipIntro() {
   animRunning = false;
-  cancelAnimationFrame(lastRaf);
+  clearTimeout(slideTimer);
   endIntro();
 }
 
@@ -787,10 +660,6 @@ function endIntro() {
   }, 600);
 }
 
-// Start
-preloadImages(() => {
-  lastRaf = requestAnimationFrame(renderFrame);
-});
 
 // ==================== TOKEN ====================
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxXA8LXpqDLHTfNL16SXCg9Nv7r8ANSWAPhVtHSpQHBCwYqHKp9pEDPUrAxnauZTzRC/exec';
@@ -952,8 +821,8 @@ async function sendToScript(payload) {
   }
 }
 
-// Verificar token al cargar
-window.addEventListener('load', checkToken);
+// Iniciar al cargar
+window.addEventListener('load', () => { checkToken(); startSlides(); });
 </script>
 </body>
 </html>
