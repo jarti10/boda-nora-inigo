@@ -378,13 +378,19 @@
 <!-- ==================== INTRO ==================== -->
 <div id="intro">
   <div id="intro-slides">
-    <img class="slide" id="s0" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_pixel-art.png">
-    <img class="slide" id="s1" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_planos_pixel-art.png">
-    <img class="slide" id="s2" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_pixel-art_2.png">
-    <img class="slide" id="s3" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_noche_pixel-art_2.png">
-    <img class="slide" id="s4" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_mensaje_pixel-art_v2.png">
+    <img class="slide" id="s0" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_pixel-art.png" crossorigin="anonymous">
+    <img class="slide" id="s1" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/tierra_planos_pixel-art.png" crossorigin="anonymous">
+    <img class="slide" id="s2" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_pixel-art_2.png" crossorigin="anonymous">
+    <img class="slide" id="s3" src="https://raw.githubusercontent.com/jarti10/boda-nora-inigo/main/img/igeretxe_novios_noche_pixel-art_2.png" crossorigin="anonymous">
+    <img class="slide" id="s4" src="https://raw.githubusercontent.com/jarti40/boda-nora-inigo/main/img/igeretxe_novios_mensaje_pixel-art_v2.png" crossorigin="anonymous">
   </div>
-  <button id="skip-btn" onclick="skipIntro()">SALTAR ▶</button>
+  <div id="loading-screen" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;">
+    <div style="font-family:'Press Start 2P',monospace;font-size:12px;color:#ffd040;letter-spacing:2px;">CARGANDO...</div>
+    <div id="progress-bar" style="width:200px;height:4px;background:#1e2d45;border-radius:2px;overflow:hidden;">
+      <div id="progress-fill" style="height:100%;width:0%;background:#ffd040;transition:width 0.3s;"></div>
+    </div>
+  </div>
+  <button id="skip-btn" onclick="skipIntro()" style="display:none;">SALTAR ▶</button>
 </div>
 
 <!-- ==================== MAIN ==================== -->
@@ -633,8 +639,8 @@ let slideTimer = null;
 
 function startSlides() {
   const slides = document.querySelectorAll('.slide');
-  let imgsReady = 0;
   const total = slides.length;
+  let loaded = 0;
 
   function showSlide(i) {
     if (!animRunning) return;
@@ -644,18 +650,29 @@ function startSlides() {
     slideTimer = setTimeout(() => showSlide(i + 1), SLIDE_DURATIONS[i] || 2000);
   }
 
-  // Wait for first image to load before starting
-  const firstImg = slides[0];
-  if (firstImg && firstImg.complete && firstImg.naturalWidth > 0) {
-    showSlide(0);
-  } else if (firstImg) {
-    firstImg.onload = () => showSlide(0);
-    firstImg.onerror = () => showSlide(0);
-    // Fallback timeout in case onload already fired
-    setTimeout(() => {
-      if (imgsReady === 0) { imgsReady = 1; showSlide(0); }
-    }, 1500);
+  function onImgLoad() {
+    loaded++;
+    const pct = Math.round((loaded / total) * 100);
+    const fill = document.getElementById('progress-fill');
+    if (fill) fill.style.width = pct + '%';
+    if (loaded === total) {
+      // All loaded — hide loading screen, show skip btn, start
+      const ls = document.getElementById('loading-screen');
+      const sb = document.getElementById('skip-btn');
+      if (ls) ls.style.display = 'none';
+      if (sb) sb.style.display = 'block';
+      setTimeout(() => showSlide(0), 300);
+    }
   }
+
+  slides.forEach(s => {
+    if (s.complete && s.naturalWidth > 0) {
+      onImgLoad();
+    } else {
+      s.onload = onImgLoad;
+      s.onerror = onImgLoad; // count errors too so we don't get stuck
+    }
+  });
 }
 
 function skipIntro() {
