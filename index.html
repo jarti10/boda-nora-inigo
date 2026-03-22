@@ -625,18 +625,22 @@ const totalImgs = Object.keys(IMGS).length;
 
 function preloadImages(cb) {
   Object.entries(IMGS).forEach(([key, src]) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      loaded[key] = img;
-      loadedCount++;
-      if (loadedCount === totalImgs) cb();
-    };
-    img.onerror = () => {
-      loadedCount++;
-      if (loadedCount === totalImgs) cb();
-    };
-    img.src = src;
+    fetch(src)
+      .then(r => r.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => {
+          loaded[key] = img;
+          loadedCount++;
+          if (loadedCount === totalImgs) cb();
+        };
+        img.src = url;
+      })
+      .catch(() => {
+        loadedCount++;
+        if (loadedCount === totalImgs) cb();
+      });
   });
 }
 
