@@ -633,14 +633,29 @@ let slideTimer = null;
 
 function startSlides() {
   const slides = document.querySelectorAll('.slide');
+  let imgsReady = 0;
+  const total = slides.length;
+
   function showSlide(i) {
     if (!animRunning) return;
     slides.forEach(s => s.classList.remove('active'));
-    if (i >= slides.length) { setTimeout(endIntro, 600); return; }
+    if (i >= total) { setTimeout(endIntro, 600); return; }
     slides[i].classList.add('active');
     slideTimer = setTimeout(() => showSlide(i + 1), SLIDE_DURATIONS[i] || 2000);
   }
-  showSlide(0);
+
+  // Wait for first image to load before starting
+  const firstImg = slides[0];
+  if (firstImg && firstImg.complete && firstImg.naturalWidth > 0) {
+    showSlide(0);
+  } else if (firstImg) {
+    firstImg.onload = () => showSlide(0);
+    firstImg.onerror = () => showSlide(0);
+    // Fallback timeout in case onload already fired
+    setTimeout(() => {
+      if (imgsReady === 0) { imgsReady = 1; showSlide(0); }
+    }, 1500);
+  }
 }
 
 function skipIntro() {
