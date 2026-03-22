@@ -665,13 +665,13 @@ function startSlides() {
     }
   }
 
+  // Force reload each image to guarantee onload fires
   slides.forEach(s => {
-    if (s.complete && s.naturalWidth > 0) {
-      onImgLoad();
-    } else {
-      s.onload = onImgLoad;
-      s.onerror = onImgLoad; // count errors too so we don't get stuck
-    }
+    const originalSrc = s.src;
+    s.onload = onImgLoad;
+    s.onerror = onImgLoad;
+    // Add cache buster to force fresh load and trigger onload
+    s.src = originalSrc + '?v=' + Date.now();
   });
 }
 
